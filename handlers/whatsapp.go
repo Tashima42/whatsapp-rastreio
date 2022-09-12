@@ -56,6 +56,10 @@ func (wh *WhatsappHandler) WebhookVerify(w http.ResponseWriter, r *http.Request)
 	w.Write([]byte("Forbidden"))
 }
 
+type responseDTO struct {
+	Success bool `json:"success"`
+}
+
 func (wh *WhatsappHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var message helpers.WhatsAppReceivedMessageObject
@@ -63,6 +67,11 @@ func (wh *WhatsappHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Print(err.Error())
 		helpers.RespondWithError(w, http.StatusBadRequest, "WHATSAPP-WEBHOOK-INVALID-BODY", "Unable to parse request body")
+		return
+	}
+
+	if message.Entry[0].Changes[0].Value.Messages == nil {
+		helpers.RespondWithJSON(w, http.StatusOK, responseDTO{Success: true})
 		return
 	}
 
@@ -75,10 +84,6 @@ func (wh *WhatsappHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 		b, _ := wh.WhatsappProvider.ReplyWithPix(messageId, fromPhoneNumber)
 		b2, _ := io.ReadAll(b.Body)
 		fmt.Println(string(b2))
-	}
-
-	type responseDTO struct {
-		Success bool `json:"success"`
 	}
 
 	helpers.RespondWithJSON(w, http.StatusOK, responseDTO{Success: true})
