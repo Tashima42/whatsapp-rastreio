@@ -107,9 +107,9 @@ func (wp *WhatsappProvider) SendMessage(toNumber string) (*http.Response, error)
 /*
 func (wp *WhatsappProvider) UploadImage() {
 		options := pix.Options{
-			Name:          "Pedro Tashima",
-			Key:           "2b071dc0-461c-4698-be90-486be9a352b7",
-			City:          "Londrina",
+			Name:          "",
+			Key:           "",
+			City:          "",
 			Amount:        23.69, // optional
 			Description:   "",    // optional
 			TransactionID: "***", // optional
@@ -120,10 +120,10 @@ func (wp *WhatsappProvider) UploadImage() {
 	payload := &bytes.Buffer{}
 	writer := multipart.NewWriter(payload)
 	_ = writer.WriteField("messaging_product", "whatsapp")
-	file, errFile2 := os.Open("/Users/tashima-utfpr/Downloads/pix.png")
+	file, errFile2 := os.Open("")
 	defer file.Close()
 	part2,
-		errFile2 := writer.CreateFormFile("file", filepath.Base("/Users/tashima-utfpr/Downloads/pix.png"))
+		errFile2 := writer.CreateFormFile("file", filepath.Base(""))
 	_, errFile2 = io.Copy(part2, file)
 	if errFile2 != nil {
 		fmt.Println(errFile2)
