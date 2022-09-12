@@ -3,9 +3,10 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/tashima42/shared-expenses-manager-backend/helpers"
 	"log"
 	"net/http"
+
+	"github.com/tashima42/shared-expenses-manager-backend/helpers"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -49,7 +50,6 @@ func (a *App) Initialize(
 	a.Router = mux.NewRouter()
 	a.Router.Use(loggingMiddleware)
 	a.Router.HandleFunc("/whatsapp/webhook", whatsappHandler.WebhookVerify).Methods(http.MethodGet)
-	a.Router.Use(authorizeMiddleware)
 	a.Router.HandleFunc("/bucket", bucketHandler.CreateBucket).Methods(http.MethodPost)
 	a.Router.HandleFunc("/whatsapp/webhook", whatsappHandler.Webhook).Methods(http.MethodPost)
 	a.Router.HandleFunc("/whatsapp/message", whatsappHandler.SendMessage).Methods(http.MethodPost)
