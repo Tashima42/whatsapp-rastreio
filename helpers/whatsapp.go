@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/fonini/go-pix/pix"
 	"io"
 	"net/http"
 )
@@ -20,6 +19,10 @@ func (wp *WhatsappProvider) ReplyWithPix(messageId string, toNumber string) (*ht
 		PreviewUrl bool   `json:"preview_url"`
 		Body       string `json:"body"`
 	}
+	type image struct {
+		Id      string `json:"id"`
+		Caption string `json:"caption"`
+	}
 	type context struct {
 		MessageId string `json:"message_id"`
 	}
@@ -28,28 +31,20 @@ func (wp *WhatsappProvider) ReplyWithPix(messageId string, toNumber string) (*ht
 		RecipientType    string  `json:"recipient_type"`
 		To               string  `json:"to"`
 		Type             string  `json:"type"`
-		Text             text    `json:"text"`
 		Context          context `json:"context"`
+		Image            image   `json:"image"`
 	}
-
-	options := pix.Options{
-		Name:          "Pedro Tashima",
-		Key:           "2b071dc0-461c-4698-be90-486be9a352b7",
-		City:          "Londrina",
-		Amount:        5.3,               // optional
-		Description:   "Youtube Premium", // optional
-		TransactionID: "***",             // optional
-	}
-
-	copyPaste, _ := pix.Pix(options)
 
 	sendMessage := message{
 		MessagingProduct: "whatsapp",
 		RecipientType:    "individual",
 		To:               toNumber,
-		Type:             "text",
-		Text:             text{Body: copyPaste, PreviewUrl: false},
-		Context:          context{MessageId: messageId},
+		Type:             "image",
+		Image: image{
+			Id:      "2913711642258741",
+			Caption: "00020126770014BR.GOV.BCB.PIX01362b071dc0-461c-4698-be90-486be9a352b70215Youtube Premium52040000530398654045.305802BR5913Pedro Tashima6008Londrina62410503***50300017BR.GOV.BCB.BRCODE01051.0.063046F88",
+		},
+		Context: context{MessageId: messageId},
 	}
 
 	body, err := json.Marshal(sendMessage)
