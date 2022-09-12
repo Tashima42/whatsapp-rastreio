@@ -3,8 +3,10 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/patrickmn/go-cache"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/tashima42/shared-expenses-manager-backend/helpers"
 
@@ -16,6 +18,7 @@ import (
 type App struct {
 	Router *mux.Router
 	DB     *sql.DB
+	Cache  *cache.Cache
 }
 
 var apikey string
@@ -38,6 +41,8 @@ func (a *App) Initialize(
 	if err != nil {
 		log.Fatal(err)
 	}
+	a.Cache = cache.New(24*time.Hour, 48*time.Hour)
+
 	whatsappProvider := helpers.WhatsappProvider{
 		PhoneNumberId:   whatsappPhoneNumberId,
 		UserAccessToken: whatsappUserAccessToken,
@@ -45,7 +50,11 @@ func (a *App) Initialize(
 	}
 
 	bucketHandler := handlers.BucketHandler{DB: a.DB}
-	whatsappHandler := handlers.WhatsappHandler{DB: a.DB, WhatsappProvider: whatsappProvider}
+	whatsappHandler := handlers.WhatsappHandler{
+		DB:               a.DB,
+		WhatsappProvider: whatsappProvider,
+		Cache:            a.Cache,
+	}
 
 	a.Router = mux.NewRouter()
 	a.Router.Use(loggingMiddleware)

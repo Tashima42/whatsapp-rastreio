@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/patrickmn/go-cache"
 	"github.com/tashima42/shared-expenses-manager-backend/helpers"
 	"io"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 type WhatsappHandler struct {
 	DB               *sql.DB
 	WhatsappProvider helpers.WhatsappProvider
+	Cache            *cache.Cache
 }
 
 func (wh *WhatsappHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
@@ -70,14 +72,24 @@ func (wh *WhatsappHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if message.Entry[0].Changes[0].Value.Messages == nil {
+	messages := message.Entry[0].Changes[0].Value.Messages
+	if messages == nil {
 		helpers.RespondWithJSON(w, http.StatusOK, responseDTO{Success: true})
 		return
 	}
 
-	messageId := message.Entry[0].Changes[0].Value.Messages[0].Id
-	buttonPayload := message.Entry[0].Changes[0].Value.Messages[0].Button.Payload
-	fromPhoneNumber := message.Entry[0].Changes[0].Value.Messages[0].From
+	wasProcessed, _ := wh.Cache.Get(messages[0].Id)
+
+	if wasProcessed == true {
+		helpers.RespondWithJSON(w, http.StatusOK, responseDTO{Success: true})
+		return
+	}
+
+	wh.Cache.SetDefault(messages[0].Id, true)
+
+	messageId := messages[0].Id
+	buttonPayload := messages[0].Button.Payload
+	fromPhoneNumber := messages[0].From
 	wh.WhatsappProvider.AckMessage(messageId)
 
 	if buttonPayload == "Informações de pagamento" {
