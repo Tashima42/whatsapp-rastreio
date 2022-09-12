@@ -48,13 +48,11 @@ func (a *App) Initialize(
 
 	a.Router = mux.NewRouter()
 	a.Router.Use(loggingMiddleware)
+	a.Router.HandleFunc("/whatsapp/webhook", whatsappHandler.WebhookVerify).Methods(http.MethodGet)
 	a.Router.Use(authorizeMiddleware)
-	a.Router.HandleFunc("/bucket", bucketHandler.CreateBucket)
-	a.Router.HandleFunc("/whatsapp/webhook", whatsappHandler.Webhook)
-	a.Router.HandleFunc("/whatsapp/message", whatsappHandler.SendMessage)
-	a.Router.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		helpers.RespondWithJSON(w, http.StatusOK, "ok")
-	})
+	a.Router.HandleFunc("/bucket", bucketHandler.CreateBucket).Methods(http.MethodPost)
+	a.Router.HandleFunc("/whatsapp/webhook", whatsappHandler.Webhook).Methods(http.MethodPost)
+	a.Router.HandleFunc("/whatsapp/message", whatsappHandler.SendMessage).Methods(http.MethodPost)
 }
 
 func (a *App) Run(addr string) {

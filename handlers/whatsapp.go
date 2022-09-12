@@ -7,6 +7,7 @@ import (
 	"github.com/tashima42/shared-expenses-manager-backend/helpers"
 	"io"
 	"net/http"
+	"os"
 )
 
 type WhatsappHandler struct {
@@ -38,6 +39,21 @@ func (wh *WhatsappHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(string(b2))
 
 	helpers.RespondWithJSON(w, http.StatusOK, responseDTO{Success: true, body: string(b2)})
+}
+
+func (wh *WhatsappHandler) WebhookVerify(w http.ResponseWriter, r *http.Request) {
+	hubMode := r.URL.Query().Get("hub.mode")
+	hubVerifyToken := r.URL.Query().Get("hub.verify_token")
+	hubChallenge := r.URL.Query().Get("hub.challenge")
+
+	if hubMode == "subscribe" && hubVerifyToken == os.Getenv("SECRET") {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(hubChallenge))
+		return
+	}
+
+	w.WriteHeader(http.StatusForbidden)
+	w.Write([]byte("Forbidden"))
 }
 
 func (wh *WhatsappHandler) Webhook(w http.ResponseWriter, r *http.Request) {
