@@ -11,30 +11,29 @@ type UserAccount struct {
 	Name     string `json:"name"`
 	City     string `json:"city"`
 	PixKey   string `json:"pixKey"`
-	Role     string `json:"role"`
 }
 
 func (u *UserAccount) CreateUserAccount(db *sql.DB) error {
 	return db.QueryRow(
-		"INSERT INTO user_accounts(username, email, name, city, pix_key, role) VALUES($1, $2, $3, $4, $5, $6) RETURNING id;",
+		"INSERT INTO user_accounts(username, email, name, city, pix_key) VALUES($1, $2, $3, $4, $5) RETURNING id;",
 		u.Username,
 		u.Email,
 		u.Name,
+		u.City,
 		u.PixKey,
-		u.Role,
 	).Scan(&u.ID)
 }
 
 func (u *UserAccount) GetById(db *sql.DB) error {
 	return db.QueryRow(
-		"SELECT id, username, email, name, city, pix_key, role FROM user_accounts WHERE id=$1 LIMIT 1;",
+		"SELECT id, username, email, name, city, pix_keyFROM user_accounts WHERE id=$1 LIMIT 1;",
 		u.ID,
-	).Scan(&u.ID, &u.Username, &u.Name, &u.City, u.PixKey, u.Role)
+	).Scan(&u.ID, &u.Username, &u.Name, &u.City, u.PixKey)
 }
 
 func (u *UserAccount) GetByUsername(db *sql.DB) error {
 	return db.QueryRow(
 		"SELECT id, username, email, name, city, pix_key, role FROM user_accounts WHERE username=$1 LIMIT 1;",
 		u.Username,
-	).Scan(&u.ID, &u.Username, &u.Name, &u.City, u.PixKey, u.Role)
+	).Scan(&u.ID, &u.Username, &u.Name, &u.City, u.PixKey)
 }

@@ -58,6 +58,7 @@ func (a *App) Initialize(
 	}
 
 	bucketHandler := handlers.BucketHandler{DB: a.DB}
+	userHandler := handlers.UserHandler{DB: a.DB}
 	whatsappHandler := handlers.WhatsappHandler{
 		DB:               a.DB,
 		WhatsappProvider: whatsappProvider,
@@ -68,9 +69,13 @@ func (a *App) Initialize(
 	a.Router = mux.NewRouter()
 	a.Router.Use(a.loggingMiddleware)
 	a.Router.HandleFunc("/whatsapp/webhook", whatsappHandler.WebhookVerify).Methods(http.MethodGet)
-	a.Router.HandleFunc("/bucket", bucketHandler.CreateBucket).Methods(http.MethodPost)
-	a.Router.HandleFunc("/whatsapp/webhook", whatsappHandler.Webhook).Methods(http.MethodPost)
-	a.Router.HandleFunc("/whatsapp/message", whatsappHandler.SendMessage).Methods(http.MethodPost)
+	authRouter := a.Router.PathPrefix("/").Subrouter()
+	authRouter.Use(a.loggingMiddleware)
+	authRouter.Use(authorizeMiddleware)
+	authRouter.HandleFunc("/bucket", bucketHandler.CreateBucket).Methods(http.MethodPost)
+	authRouter.HandleFunc("/whatsapp/webhook", whatsappHandler.Webhook).Methods(http.MethodPost)
+	authRouter.HandleFunc("/whatsapp/message", whatsappHandler.SendMessage).Methods(http.MethodPost)
+	authRouter.HandleFunc("/user", userHandler.CreateUser).Methods(http.MethodPost)
 
 }
 
@@ -90,8 +95,8 @@ func (a *App) loggingMiddleware(next http.Handler) http.Handler {
 			Method string `json:"method"`
 		}
 
-		log := &logRequest{Uri: r.RequestURI, Body: string(b)}
-		logJson, err := json.Marshal(log)
+		logReq := &logRequest{Uri: r.RequestURI, Body: string(b), Method: r.Method}
+		logJson, err := json.Marshal(logReq)
 		if err != nil {
 			fmt.Println(err.Error())
 		}

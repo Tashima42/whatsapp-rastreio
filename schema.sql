@@ -1,11 +1,17 @@
+--create types
+DO $$ BEGIN
+    CREATE TYPE ROLE AS ENUM ('admin', 'member');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 CREATE TABLE IF NOT EXISTS user_accounts(
   id SERIAL PRIMARY KEY,
   username TEXT NOT NULL UNIQUE,
   email TEXT,
   name TEXT NOT NULL,
   city TEXT NOT NULL,
-  pix_key TEXT NOT NULL,
-  role TEXT NOT NULL
+  pix_key TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS buckets(
@@ -16,8 +22,10 @@ CREATE TABLE IF NOT EXISTS buckets(
   monthly_member_value TEXT NOT NULL
 );
 
+
 CREATE TABLE IF NOT EXISTS bucket_user_account(
   id SERIAL PRIMARY KEY,
+  role ROLE NOT NULL,
   bucket_id SERIAL NOT NULL,
   user_account_id SERIAL NOT NULL,
   FOREIGN KEY (bucket_id) REFERENCES buckets (id),
