@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/patrickmn/go-cache"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -46,6 +47,7 @@ func (a *App) Initialize(
 	if err != nil {
 		log.Fatal(err)
 	}
+	a.ensureTableExists()
 	a.Cache = cache.New(24*time.Hour, 48*time.Hour)
 	a.Logger = &helpers.Logger{DB: a.DB, Env: env}
 
@@ -112,4 +114,12 @@ func authorizeMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (a *App) ensureTableExists() {
+	b, _ := ioutil.ReadFile("./schema.sql")
+	tableCreationQuery := string(b)
+	if _, err := a.DB.Exec(tableCreationQuery); err != nil {
+		log.Fatal(err)
+	}
 }
