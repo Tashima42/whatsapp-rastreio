@@ -57,7 +57,7 @@ func (a *App) Initialize(
 		BaseUrl:         whatsappBaseUrl,
 	}
 
-	bucketHandler := handlers.BucketHandler{DB: a.DB}
+	groupHandler := handlers.GroupHandler{DB: a.DB}
 	userHandler := handlers.UserHandler{DB: a.DB}
 	whatsappHandler := handlers.WhatsappHandler{
 		DB:               a.DB,
@@ -72,11 +72,14 @@ func (a *App) Initialize(
 	authRouter := a.Router.PathPrefix("/").Subrouter()
 	authRouter.Use(a.loggingMiddleware)
 	authRouter.Use(authorizeMiddleware)
-	authRouter.HandleFunc("/bucket", bucketHandler.CreateBucket).Methods(http.MethodPost)
+
 	authRouter.HandleFunc("/whatsapp/webhook", whatsappHandler.Webhook).Methods(http.MethodPost)
 	authRouter.HandleFunc("/whatsapp/message", whatsappHandler.SendMessage).Methods(http.MethodPost)
+
 	authRouter.HandleFunc("/user", userHandler.CreateUser).Methods(http.MethodPost)
 
+	authRouter.HandleFunc("/group", groupHandler.CreateBucket).Methods(http.MethodPost)
+	authRouter.HandleFunc("/group/user", groupHandler.AddUserToGroup).Methods(http.MethodPost)
 }
 
 func (a *App) Run(addr string) {
@@ -111,8 +114,6 @@ func (a *App) loggingMiddleware(next http.Handler) http.Handler {
 func authorizeMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorizationHeader := r.Header.Get("Authorization")
-		fmt.Println("test")
-		fmt.Println(apikey, authorizationHeader)
 		if authorizationHeader != apikey {
 			helpers.RespondWithError(w, http.StatusUnauthorized, "UNAUTHORIZED-INVALID-APIKEY", "Invalid apikey")
 			return

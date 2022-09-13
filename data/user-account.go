@@ -26,9 +26,9 @@ func (u *UserAccount) CreateUserAccount(db *sql.DB) error {
 
 func (u *UserAccount) GetById(db *sql.DB) error {
 	return db.QueryRow(
-		"SELECT id, username, email, name, city, pix_keyFROM user_accounts WHERE id=$1 LIMIT 1;",
+		"SELECT id, username, email, name, city, pix_key FROM user_accounts WHERE id=$1 LIMIT 1;",
 		u.ID,
-	).Scan(&u.ID, &u.Username, &u.Name, &u.City, u.PixKey)
+	).Scan(&u.ID, &u.Username, &u.Email, &u.Name, &u.City, &u.PixKey)
 }
 
 func (u *UserAccount) GetByUsername(db *sql.DB) error {

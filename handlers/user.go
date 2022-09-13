@@ -14,10 +14,6 @@ type UserHandler struct {
 	DB *sql.DB
 }
 
-type CreateUserResponseDTO struct {
-	Success bool `json:"success"`
-}
-
 func (uh *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var user data.UserAccount
@@ -36,9 +32,5 @@ func (uh *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: return created data?
-	createUserResponse := CreateUserResponseDTO{
-		Success: true,
-	}
-	helpers.RespondWithJSON(w, http.StatusOK, createUserResponse)
+	helpers.RespondWithJSON(w, http.StatusOK, user)
 }

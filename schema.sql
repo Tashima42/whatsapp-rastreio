@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS user_accounts(
   pix_key TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS buckets(
+CREATE TABLE IF NOT EXISTS groups(
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   due_date DATE NOT NULL,
@@ -23,22 +23,23 @@ CREATE TABLE IF NOT EXISTS buckets(
 );
 
 
-CREATE TABLE IF NOT EXISTS bucket_user_account(
+CREATE TABLE IF NOT EXISTS group_user_account(
   id SERIAL PRIMARY KEY,
   role ROLE NOT NULL,
-  bucket_id SERIAL NOT NULL,
+  group_id SERIAL NOT NULL,
   user_account_id SERIAL NOT NULL,
-  FOREIGN KEY (bucket_id) REFERENCES buckets (id),
+  FOREIGN KEY (group_id) REFERENCES groups (id),
   FOREIGN KEY (user_account_id) REFERENCES user_accounts (id)
 );
 
 CREATE TABLE IF NOT EXISTS transactions(
   id SERIAL PRIMARY KEY,
   attachment TEXT NOT NULL,
-  bucket_id SERIAL NOT NULL,
+  group_id SERIAL NOT NULL,
   date DATE NOT NULL,
   user_account_id SERIAL NOT NULL,
-  FOREIGN KEY (bucket_id) REFERENCES buckets (id),
+  paid BOOLEAN NOT NULL DEFAULT FALSE,
+  FOREIGN KEY (group_id) REFERENCES groups (id),
   FOREIGN KEY (user_account_id) REFERENCES user_accounts (id)
 );
 

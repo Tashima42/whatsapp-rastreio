@@ -53,7 +53,6 @@ type Logger struct {
 }
 
 func (lg *Logger) Log(log string, label string) {
-	fmt.Println("logging")
 	err := lg.DB.QueryRow(
 		"INSERT INTO logs(log, env, date, label) VALUES($1, $2, $3, $4)",
 		log,
