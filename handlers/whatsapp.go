@@ -15,6 +15,7 @@ type WhatsappHandler struct {
 	DB               *sql.DB
 	WhatsappProvider helpers.WhatsappProvider
 	Cache            *cache.Cache
+	Logger           *helpers.Logger
 }
 
 func (wh *WhatsappHandler) SendMessage(w http.ResponseWriter, r *http.Request) {

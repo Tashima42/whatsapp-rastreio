@@ -32,4 +32,12 @@ CREATE TABLE IF NOT EXISTS transactions(
   user_account_id SERIAL NOT NULL,
   FOREIGN KEY (bucket_id) REFERENCES buckets (id),
   FOREIGN KEY (user_account_id) REFERENCES user_accounts (id)
-)
+);
+
+CREATE TABLE IF NOT EXISTS logs (
+    id SERIAL PRIMARY KEY,
+    log TEXT NOT NULL,
+    env TEXT,
+    date TIMESTAMP,
+    label TEXT
+);

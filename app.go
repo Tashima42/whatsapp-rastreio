@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/patrickmn/go-cache"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -19,6 +22,7 @@ type App struct {
 	Router *mux.Router
 	DB     *sql.DB
 	Cache  *cache.Cache
+	Logger *helpers.Logger
 }
 
 var apikey string
@@ -31,6 +35,7 @@ func (a *App) Initialize(
 	whatsappUserAccessToken string,
 	whatsappBaseUrl string,
 	secret string,
+	env string,
 ) {
 	connectionString := fmt.Sprintf("user=%s password=%s dbname=%s sslmode='disable'", user, password, dbname)
 
@@ -42,6 +47,7 @@ func (a *App) Initialize(
 		log.Fatal(err)
 	}
 	a.Cache = cache.New(24*time.Hour, 48*time.Hour)
+	a.Logger = &helpers.Logger{DB: a.DB, Env: env}
 
 	whatsappProvider := helpers.WhatsappProvider{
 		PhoneNumberId:   whatsappPhoneNumberId,
@@ -54,23 +60,44 @@ func (a *App) Initialize(
 		DB:               a.DB,
 		WhatsappProvider: whatsappProvider,
 		Cache:            a.Cache,
+		Logger:           a.Logger,
 	}
 
 	a.Router = mux.NewRouter()
-	a.Router.Use(loggingMiddleware)
+	a.Router.Use(a.loggingMiddleware)
 	a.Router.HandleFunc("/whatsapp/webhook", whatsappHandler.WebhookVerify).Methods(http.MethodGet)
 	a.Router.HandleFunc("/bucket", bucketHandler.CreateBucket).Methods(http.MethodPost)
 	a.Router.HandleFunc("/whatsapp/webhook", whatsappHandler.Webhook).Methods(http.MethodPost)
 	a.Router.HandleFunc("/whatsapp/message", whatsappHandler.SendMessage).Methods(http.MethodPost)
+
 }
 
 func (a *App) Run(addr string) {
 	log.Fatal(http.ListenAndServe(addr, a.Router))
 }
 
-func loggingMiddleware(next http.Handler) http.Handler {
+func (a *App) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Println(r.RequestURI)
+		body := r.Body
+		b, _ := io.ReadAll(body)
+		originalBody := io.NopCloser(bytes.NewBuffer(b))
+		type logRequest struct {
+			Uri    string `json:"uri"`
+			Body   string `json:"body"`
+			Method string `json:"method"`
+		}
+
+		log := &logRequest{Uri: r.RequestURI, Body: string(b)}
+		logJson, err := json.Marshal(log)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		fmt.Println(string(logJson))
+
+		a.Logger.Log(string(logJson), "request")
+
+		r.Body = originalBody
 		next.ServeHTTP(w, r)
 	})
 }

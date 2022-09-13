@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -44,4 +45,23 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(response)
+}
+
+type Logger struct {
+	DB  *sql.DB
+	Env string
+}
+
+func (lg *Logger) Log(log string, label string) {
+	fmt.Println("logging")
+	err := lg.DB.QueryRow(
+		"INSERT INTO logs(log, env, date, label) VALUES($1, $2, $3, $4)",
+		log,
+		lg.Env,
+		time.Now(),
+		label,
+	)
+	if err != nil {
+		fmt.Println(err.Err())
+	}
 }
