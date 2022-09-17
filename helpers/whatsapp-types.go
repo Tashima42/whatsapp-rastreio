@@ -36,6 +36,7 @@ type whatsAppReceivedMessageChangeValueMessage struct {
 	Timestamp string                                           `json:"timestamp"`
 	Type      string                                           `json:"type"`
 	Button    whatsAppReceivedMessageChangeValueMessageButton  `json:"button"`
+	Text      whatsAppReceivedMessageChangeValueMessageText    `json:"text"`
 }
 type whatsAppReceivedMessageChangeValueMessageContext struct {
 	From string `json:"from"`
@@ -44,4 +45,7 @@ type whatsAppReceivedMessageChangeValueMessageContext struct {
 type whatsAppReceivedMessageChangeValueMessageButton struct {
 	Payload string `json:"payload"`
 	Text    string `json:"text"`
+}
+type whatsAppReceivedMessageChangeValueMessageText struct {
+	Body string `json:"body"`
 }

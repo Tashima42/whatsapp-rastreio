@@ -5,18 +5,19 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/go-co-op/gocron"
+	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
 	"github.com/patrickmn/go-cache"
+	"github.com/tashima42/whatsapp-rastreio/handlers"
+	"github.com/tashima42/whatsapp-rastreio/helpers"
+	"github.com/tashima42/whatsapp-rastreio/providers"
+	"github.com/tashima42/whatsapp-rastreio/routines"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/tashima42/shared-expenses-manager-backend/helpers"
-
-	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
-	"github.com/tashima42/shared-expenses-manager-backend/handlers"
 )
 
 type App struct {
@@ -35,6 +36,7 @@ func (a *App) Initialize(
 	whatsappPhoneNumberId string,
 	whatsappUserAccessToken string,
 	whatsappBaseUrl string,
+	correiosBaseUrl string,
 	secret string,
 	env string,
 ) {
@@ -47,39 +49,44 @@ func (a *App) Initialize(
 	if err != nil {
 		log.Fatal(err)
 	}
-	a.ensureTableExists()
+	createdTables := make(chan bool)
+	a.ensureTableExists(createdTables)
+	<-createdTables
 	a.Cache = cache.New(24*time.Hour, 48*time.Hour)
 	a.Logger = &helpers.Logger{DB: a.DB, Env: env}
+	gc := gocron.NewScheduler(time.Local)
 
-	whatsappProvider := helpers.WhatsappProvider{
+	correiosProvider := providers.CorreiosProvider{DB: a.DB, BaseUrl: correiosBaseUrl}
+
+	whatsappProvider := providers.WhatsappProvider{
 		PhoneNumberId:   whatsappPhoneNumberId,
 		UserAccessToken: whatsappUserAccessToken,
 		BaseUrl:         whatsappBaseUrl,
 	}
 
-	groupHandler := handlers.GroupHandler{DB: a.DB}
-	userHandler := handlers.UserHandler{DB: a.DB}
 	whatsappHandler := handlers.WhatsappHandler{
 		DB:               a.DB,
 		WhatsappProvider: whatsappProvider,
 		Cache:            a.Cache,
 		Logger:           a.Logger,
+		CorreiosProvider: &correiosProvider,
 	}
+
+	objectsRoutines := routines.ObjectsRoutines{DB: a.DB, CorreiosProvider: correiosProvider}
+	whatsappRoutines := routines.WhatsappRoutines{DB: a.DB, WhatsappProvider: whatsappProvider}
+	gc.Every(30).Seconds().SingletonMode().Do(objectsRoutines.UpdateObjectsEvents)
+	gc.Every(30).Seconds().SingletonMode().Do(whatsappRoutines.SendUserUpdates)
+	gc.StartAsync()
 
 	a.Router = mux.NewRouter()
 	a.Router.Use(a.loggingMiddleware)
 	a.Router.HandleFunc("/whatsapp/webhook", whatsappHandler.WebhookVerify).Methods(http.MethodGet)
+
 	authRouter := a.Router.PathPrefix("/").Subrouter()
 	authRouter.Use(a.loggingMiddleware)
 	authRouter.Use(authorizeMiddleware)
 
 	authRouter.HandleFunc("/whatsapp/webhook", whatsappHandler.Webhook).Methods(http.MethodPost)
-	authRouter.HandleFunc("/whatsapp/message", whatsappHandler.SendMessage).Methods(http.MethodPost)
-
-	authRouter.HandleFunc("/user", userHandler.CreateUser).Methods(http.MethodPost)
-
-	authRouter.HandleFunc("/group", groupHandler.CreateBucket).Methods(http.MethodPost)
-	authRouter.HandleFunc("/group/user", groupHandler.AddUserToGroup).Methods(http.MethodPost)
 }
 
 func (a *App) Run(addr string) {
@@ -122,10 +129,11 @@ func authorizeMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (a *App) ensureTableExists() {
+func (a *App) ensureTableExists(createdTables chan bool) {
 	b, _ := ioutil.ReadFile("./schema.sql")
 	tableCreationQuery := string(b)
 	if _, err := a.DB.Exec(tableCreationQuery); err != nil {
 		log.Fatal(err)
 	}
+	close(createdTables)
 }

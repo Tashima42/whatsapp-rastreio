@@ -5,43 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/patrickmn/go-cache"
-	"github.com/tashima42/shared-expenses-manager-backend/helpers"
-	"io"
+	"github.com/tashima42/whatsapp-rastreio/data"
+	"github.com/tashima42/whatsapp-rastreio/helpers"
+	whatsappTemplates "github.com/tashima42/whatsapp-rastreio/helpers/whatsapp-templates"
+	"github.com/tashima42/whatsapp-rastreio/providers"
 	"net/http"
 	"os"
+	"regexp"
+	"strings"
 )
 
 type WhatsappHandler struct {
 	DB               *sql.DB
-	WhatsappProvider helpers.WhatsappProvider
+	WhatsappProvider providers.WhatsappProvider
 	Cache            *cache.Cache
 	Logger           *helpers.Logger
-}
-
-func (wh *WhatsappHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
-	type requestDTO struct {
-		To string `json:"to"`
-	}
-	var request requestDTO
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&request)
-	if err != nil {
-		fmt.Print(err.Error())
-		helpers.RespondWithError(w, http.StatusBadRequest, "WHATSAPP-SEND-MESSAGE-INVALID-BODY", "Unable to parse request body")
-		return
-	}
-
-	b, _ := wh.WhatsappProvider.SendMessage(request.To)
-
-	type responseDTO struct {
-		Success bool   `json:"success"`
-		body    string `json:"body"`
-	}
-
-	b2, _ := io.ReadAll(b.Body)
-	fmt.Println(string(b2))
-
-	helpers.RespondWithJSON(w, http.StatusOK, responseDTO{Success: true, body: string(b2)})
+	CorreiosProvider *providers.CorreiosProvider
 }
 
 func (wh *WhatsappHandler) WebhookVerify(w http.ResponseWriter, r *http.Request) {
@@ -88,23 +67,73 @@ func (wh *WhatsappHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 
 	wh.Cache.SetDefault(messages[0].Id, true)
 
-	messageId := messages[0].Id
-	buttonPayload := messages[0].Button.Payload
-	fromPhoneNumber := messages[0].From
-	wh.WhatsappProvider.AckMessage(messageId)
-
-	if buttonPayload == "Informações de pagamento" {
-		b, _ := wh.WhatsappProvider.ReplyWithPix(messageId, fromPhoneNumber)
-		b2, _ := io.ReadAll(b.Body)
-		fmt.Println(string(b2))
+	err = wh.registerPackage(message)
+	if err != nil {
+		fmt.Println(err.Error())
+		invalidCodeTemplate := whatsappTemplates.CorreiosInvalidCode{}
+		wh.WhatsappProvider.SendMessageTemplate(invalidCodeTemplate.GetTemplate(), messages[0].From)
 	}
+
+	messageId := messages[0].Id
+	wh.WhatsappProvider.AckMessage(messageId)
 
 	helpers.RespondWithJSON(w, http.StatusOK, responseDTO{Success: true})
 }
 
-/*
-func (wh *WhatsappHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
-
-	whatsappProvider.UploadImage()
+func (wh *WhatsappHandler) registerPackage(whatsappMessage helpers.WhatsAppReceivedMessageObject) error {
+	if whatsappMessage.Object != "whatsapp_business_account" {
+		return fmt.Errorf("invalid object type")
+	}
+	if len(whatsappMessage.Entry) <= 0 {
+		return fmt.Errorf("entry must have at least one member")
+	}
+	if len(whatsappMessage.Entry[0].Changes) <= 0 {
+		return fmt.Errorf("changes must have at least one member")
+	}
+	changes := whatsappMessage.Entry[0].Changes[0]
+	if changes.Field != "messages" {
+		return fmt.Errorf("field must be messages")
+	}
+	if changes.Value.MessagingProduct != "whatsapp" {
+		return fmt.Errorf("messaging Product must be whatsapp")
+	}
+	if len(changes.Value.Messages) <= 0 {
+		return fmt.Errorf("messages must have at least one member")
+	}
+	messages := changes.Value.Messages[0]
+	if messages.Type != "text" {
+		return fmt.Errorf("type must be text")
+	}
+	codeRegex, err := regexp.Compile("^[A-Z]{2}[0-9]{9}[A-Z]{2}$")
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		return fmt.Errorf("internal error failed to compile regex")
+	}
+	textBody := messages.Text.Body
+	splitBody := strings.Split(textBody, " ")
+	code := splitBody[0]
+	if codeRegex.MatchString(code) != true {
+		return fmt.Errorf("invalid code format")
+	}
+	splitBody = splitBody[1:]
+	name := strings.Join(splitBody, " ")
+	user := data.User{Number: messages.From}
+	err = user.GetByNumber(wh.DB)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		if err.Error() == "sql: no rows in result set" {
+			err = user.CreateUser(wh.DB)
+			if err != nil {
+				return err
+			}
+		} else {
+			return fmt.Errorf("failed to get user")
+		}
+	}
+	object := data.Object{
+		Code: code,
+		Name: name,
+	}
+	wh.CorreiosProvider.RegisterPackage(user, object)
+	return nil
 }
-*/

@@ -1,7 +1,9 @@
 package helpers
 
 import (
+	"crypto/md5"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -12,6 +14,9 @@ import (
 func NowPlusSeconds(seconds int) time.Time {
 	return time.Now().Local().Add(time.Second * time.Duration(seconds))
 }
+func NowMinusMinutes(minutes int) time.Time {
+	return time.Now().Local().Add(time.Minute * time.Duration(minutes))
+}
 
 func GenerateRandomString(length int) string {
 	rand.Seed(time.Now().UnixNano())
@@ -20,6 +25,10 @@ func GenerateRandomString(length int) string {
 		bytes[i] = byte(randomInt(65, 90))
 	}
 	return string(bytes)
+}
+func GetMD5Hash(text string) string {
+	hash := md5.Sum([]byte(text))
+	return hex.EncodeToString(hash[:])
 }
 
 func randomInt(min, max int) int {

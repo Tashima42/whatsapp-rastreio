@@ -14,6 +14,7 @@ func main() {
 		os.Getenv("WHATSAPP_PHONE_NUMBER_ID"),
 		os.Getenv("WHATSAPP_USER_ACCESS_TOKEN"),
 		os.Getenv("WHATSAPP_BASE_URL"),
+		os.Getenv("CORREIOS_BASE_URL"),
 		os.Getenv("SECRET"),
 		os.Getenv("GO_ENV"),
 	)
