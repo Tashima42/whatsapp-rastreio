@@ -84,7 +84,7 @@ func (a *App) Initialize(
 
 	authRouter := a.Router.PathPrefix("/").Subrouter()
 	authRouter.Use(a.loggingMiddleware)
-	authRouter.Use(authorizeMiddleware)
+	//authRouter.Use(authorizeMiddleware)
 
 	authRouter.HandleFunc("/whatsapp/webhook", whatsappHandler.Webhook).Methods(http.MethodPost)
 }
