@@ -16,9 +16,10 @@ type Event struct {
 
 func (e *Event) CreateEvent(db *sql.DB) error {
 	return db.QueryRow(
-		"INSERT INTO events(hash, body, created_at, updated_at) VALUES($1, $2, $3, $4) RETURNING id;",
+		"INSERT INTO events(hash, body,object_id, created_at, updated_at) VALUES($1, $2, $3, $4, $5) RETURNING id;",
 		e.Hash,
 		e.Body,
+		e.ObjectId,
 		time.Now(),
 		time.Now(),
 	).Scan(&e.ID)

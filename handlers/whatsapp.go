@@ -143,9 +143,13 @@ func (wh *WhatsappHandler) registerPackage(whatsappMessage helpers.WhatsAppRecei
 		fmt.Printf("Error: %s", err.Error())
 		if err.Error() == "sql: no rows in result set" {
 			wh.CorreiosProvider.RegisterPackage(user, object)
+		} else {
+			err = user.AddObject(wh.DB, object)
+			if err != nil {
+				return err
+			}
 		}
 	}
-	user.AddObject(wh.DB, object)
 	return nil
 }
 func (wh *WhatsappHandler) validateObjectCode(code string) bool {
