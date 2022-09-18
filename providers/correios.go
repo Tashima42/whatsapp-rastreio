@@ -39,6 +39,7 @@ func (cp *CorreiosProvider) RegisterPackage(user data.User, object data.Object) 
 	err = event.CreateEvent(cp.DB)
 	if err != nil {
 		fmt.Printf("Error: %s", err.Error())
+		return
 	}
 }
 

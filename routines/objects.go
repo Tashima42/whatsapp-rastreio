@@ -49,6 +49,7 @@ func (or *ObjectsRoutines) updateEvents(events []data.Event, objects []data.Obje
 			err = events[i].Update(or.DB)
 			if err != nil {
 				fmt.Printf("Error: %s", err.Error())
+				return
 			}
 		}
 	}

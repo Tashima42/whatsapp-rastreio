@@ -109,6 +109,7 @@ func (a *App) loggingMiddleware(next http.Handler) http.Handler {
 		logJson, err := json.Marshal(logReq)
 		if err != nil {
 			fmt.Println(err.Error())
+			return
 		}
 		fmt.Println(string(logJson))
 

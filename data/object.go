@@ -35,6 +35,13 @@ func (o *Object) UpdateLastSentHash(db *sql.DB) error {
 	).Err()
 }
 
+func (o *Object) GetByCode(db *sql.DB) error {
+	return db.QueryRow(
+		"SELECT id, code, name, created_at, updated_at FROM objects WHERE code = $1",
+		o.Code,
+	).Scan(&o.ID, &o.Code, &o.Name, &o.CreatedAt, &o.UpdatedAt)
+}
+
 func (o *Object) GetObjectEvent(db *sql.DB) (Event, error) {
 	var event Event
 	err := db.QueryRow(

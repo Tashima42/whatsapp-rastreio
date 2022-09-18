@@ -130,10 +130,29 @@ func (wh *WhatsappHandler) registerPackage(whatsappMessage helpers.WhatsAppRecei
 			return fmt.Errorf("failed to get user")
 		}
 	}
+	valid := wh.validateObjectCode(code)
+	if valid != true {
+		return fmt.Errorf("invalid code")
+	}
 	object := data.Object{
 		Code: code,
 		Name: name,
 	}
-	wh.CorreiosProvider.RegisterPackage(user, object)
+	err = object.GetByCode(wh.DB)
+	if err != nil {
+		fmt.Printf("Error: %s", err.Error())
+		if err.Error() == "sql: no rows in result set" {
+			wh.CorreiosProvider.RegisterPackage(user, object)
+		}
+	}
+	user.AddObject(wh.DB, object)
 	return nil
+}
+func (wh *WhatsappHandler) validateObjectCode(code string) bool {
+	codes := []string{code}
+	_, err := wh.CorreiosProvider.GetCorreiosObjects(codes)
+	if err != nil {
+		return false
+	}
+	return true
 }
